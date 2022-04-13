@@ -1,0 +1,20 @@
+{
+  "name": "helloworld",
+  "version": "1.0.0",
+  "description": "Test service",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start2": "node app.js",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "hello-world"
+  ],
+  "author": "Z",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.3",
+    "http": "0.0.1-security"
+  }
+}
