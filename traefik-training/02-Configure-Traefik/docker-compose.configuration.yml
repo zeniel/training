@@ -1,0 +1,65 @@
+version: '3'
+
+services:
+  traefik:
+    # The latest official supported Traefik docker image
+    image: traefik:v2.6.3
+    # Enables the Traefik Dashboard and tells Traefik to listen to docker
+    # enable --log.level=INFO so we can see what Traefik is doing in the log files
+    ports:
+      # Exposes port 80 for incomming web requests
+      - "80:80"
+      - "443:443"
+      - "9090:9090"
+      # The Web UI port http://0.0.0.0:8080 (enabled by --api.insecure=true)
+      - "8585:8080"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik-entrypoints.yml:/etc/traefik/traefik.yml
+
+# Add the catapp service
+  catapp:
+     # A Random Cat GIF generator application
+     image: mikesir87/cats:3.0
+     # We set a label to tell Traefik to assign a hostname to the new service
+     labels:
+      - "traefik.enable=true"
+      # Router
+      - "traefik.http.routers.catapp.rule=Host(`catapp.localhost`)"
+      - "traefik.http.routers.catapp.entrypoints=web"
+      - "traefik.http.routers.catapp.middlewares=test-redirectscheme"
+
+      - "traefik.http.routers.catapp-secure.rule=Host(`catapp.localhost`)"
+      - "traefik.http.routers.catapp-secure.entrypoints=websecure"
+      - "traefik.http.routers.catapp-secure.middlewares=test-auth,test-compress,test-errorpages,test-ratelimit"
+      # Service
+      - "traefik.http.services.catapp-secure.loadbalancer.server.port=5000"
+      # Middleware
+      ## - use bcrypt to this and replace one $ with two $$
+      ## using: echo $(htpasswd -nb admin admin1234) | sed -e s/\\$/\\$\\$/g
+      ## user: admin / admin1234
+      - "traefik.http.middlewares.test-auth.basicauth.users=admin:$$2y$$05$$1cgpemu81vf9xSnfFV8lKe6s/lU/VMNf6IOGsnqKIRewVbF7uV6Dm,pnc:$$apr1$$pD02i68m$$ACyccEFkt.9Nc7QB8ddtR0"
+      
+      - "traefik.http.middlewares.test-compress.compress=true"
+      
+      - "traefik.http.middlewares.test-errorpages.errors.status=400-599"
+      - "traefik.http.middlewares.test-errorpages.errors.service=error"
+      - "traefik.http.middlewares.test-errorpages.errors.query=/{status}.html"
+      
+      - "traefik.http.middlewares.test-ratelimit.ratelimit.average=2"
+      
+      - "traefik.http.middlewares.test-redirectscheme.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.test-redirectscheme.redirectscheme.permanent=true"
+  error-service:
+      image: guillaumebriday/traefik-custom-error-pages
+      labels:
+        - "traefik.enable=true"
+        # Router
+        - "traefik.http.routers.error.rule=Host(`error.localhost`)"
+        - "traefik.http.routers.error.service=error"
+        - "traefik.http.routers.error.entrypoints=web"
+        # Service
+        - "traefik.http.services.error.loadbalancer.server.port=80"
+        # Middleware
+

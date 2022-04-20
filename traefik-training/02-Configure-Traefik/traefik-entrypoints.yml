@@ -1,0 +1,37 @@
+################################################################
+# API and dashboard configuration
+################################################################
+api:
+  # Dashboard
+  #
+  #
+  dashboard: true
+  insecure: true
+################################################################
+# Docker configuration backend
+################################################################
+providers:
+  docker:
+    exposedByDefault: false ## means that a new container will not have any port exposed automatically
+################################################################
+# Traefik Logging
+################################################################
+log:
+  level: DEBUG
+
+################################################################
+# Entrypoint
+## These ports need to be visible/owned by the container
+################################################################
+entryPoints:
+  web:
+    address: ":80"
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: websecure
+    #       scheme: https
+  websecure:
+    address: ":443"
+  webcustom:
+    address: ":9090"
