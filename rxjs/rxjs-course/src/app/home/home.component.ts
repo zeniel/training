@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Course } from "../model/course";
-import { interval, noop, Observable, of, timer } from 'rxjs';
-import { catchError, delayWhen, map, retryWhen, shareReplay, tap } from 'rxjs/operators';
-import { createHttpObservable } from '../common/util';
+import { interval, noop, Observable, of, throwError, timer } from 'rxjs';
+import { catchError, delayWhen, finalize, map, retryWhen, shareReplay, tap } from 'rxjs/operators';
+import { createHttpObservable, createHttpObservableCacncelable } from '../common/util';
 
 
 @Component({
@@ -17,19 +17,47 @@ export class HomeComponent implements OnInit {
     }
 
     ngOnInit() {
-        const http$ = createHttpObservable('/api/courses');
+        const http$ = createHttpObservableCacncelable('/api/courses');
 
         const courses$ = http$
             .pipe(
                 tap(() => console.log("HTTP REQUESTED")),
                 map(response => Object.values(response["payload"] as Course[])),
-                shareReplay() // Share the result among various subscribers
+                // replace the error with an offline result
+            //    catchError(err => of([this.defaultResponse()])),  
+                // trhow the error 
+                // catchError(err => {
+                //     console.log('Some error corred', err);
+
+                //     return throwError(err);
+                // }),
+                finalize(() => console.log('Finalize executed....')),
+                shareReplay(), // Share the result among various subscribers
+                // retrylogic
+                retryWhen(errors => {
+                    return errors.pipe(
+                        delayWhen(() => timer(2000))
+                    )
+                })
             );
 
 
         this.initializingCoursesAsObservables(courses$);
 
         // this.initilizingCoursesWithSubscribeLogic(courses$);
+    }
+
+
+    defaultResponse(){
+        return {
+            id: 1,
+            description: "Angular for Beginners",
+            iconUrl: 'https://angular-academy.s3.amazonaws.com/thumbnails/angular2-for-beginners-small-v2.png',
+            courseListIcon: 'https://angular-academy.s3.amazonaws.com/main-logo/main-page-logo-small-hat.png',
+            longDescription: "Establish a solid layer of fundamentals, learn what's under the hood of Angular",
+            category: 'BEGINNER',
+            lessonsCount: 10
+        };
     }
 
     /******************
@@ -39,7 +67,7 @@ export class HomeComponent implements OnInit {
     advancedCourses$: Observable<Course[]>;
 
     initializingCoursesAsObservables(courses$: Observable<Course[]>){
-        courses$.subscribe();
+        // courses$.subscribe();
 
         this.beginnersCourses$ = courses$
             .pipe(
