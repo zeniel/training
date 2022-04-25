@@ -60,7 +60,7 @@ export class AboutComponent implements OnInit {
 
     const sub = http$.subscribe(console.log);
 
-    setTimeout(() => sub.unsubscribe(), 0);
+    setTimeout(() => sub.unsubscribe);
 
   }
 
